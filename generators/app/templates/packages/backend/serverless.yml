@@ -1,0 +1,104 @@
+service: <%= title %>
+
+package:
+  individually: true
+
+custom:
+  stackName: ${self:service}-${self:provider.stage}
+  COGNITO_USER_POOL: ${self:custom.stackName}-user-pool
+  COGNITO_CLIENT: ${self:custom.stackName}-client
+  COGNITO_IDENTITY_POOL: ${self:custom.stackName}-identity-pool
+  COGNITO_APP_AUTH_ROLE: ${self:custom.stackName}-cognito-app-auth-role
+  COGNITO_APP_UNAUTH_ROLE: ${self:custom.stackName}-cognito-app-unauth-role
+  BASE_URL: ${env:BASE_URL, 'work-in-progress'}
+  CognitoAddCustomAttributes:
+    CognitoUserPoolIdOutputKey: <%= title %>UserPool
+    CognitoUserPoolClientIdOutputKey: <%= title %>UserPoolClient
+
+  db:
+    dbname: "<%= title %>"
+    minCapacity: 2
+    maxCapacity: 16
+    secondsUntilAutoPause: 7200 # 2 hours; shouldn't be enabled on prod
+  bastion: # EC2 host to access database
+    # sshKeyPairName: "${env:SSH_KEYPAIR, '<%= title %>-dev-2020'}" # set this to enable bastion ec2 instance
+    sshKeyPairName: ""
+    alertEmails: "mischa@jetbridge.com" # get SNS notifications of alarms at this address
+    banner: https://ops.jetbridge.com/public/banner.txt
+    bootstrap: https://ops.jetbridge.com/public/bastion_bootstrap.sh
+    instanceType: t3a.nano
+    bannerEnabled: "true"
+    tcpForwardingEnabled: "true"
+    x11ForwardingEnabled: "false"
+    logRetentionInDays: 731
+  secrets:
+    prefix: "${self:service}/${self:provider.stage}"
+    rds: "${self:custom.secrets.prefix}/rds/credentials"
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  profile: ${env:AWS_PROFILE, '<%= title %>-dev'}
+
+  environment:
+    STAGE: ${self:provider.stage}
+    AURORA_SECRET_ARN: "arn:aws:secretsmanager:#{AWS::Region}:#{AWS::AccountId}:secret:${self:custom.secrets.rds}"
+    BASE_URL: ${self:custom.BASE_URL}
+    AURORA_ARN: "arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:${self:custom.stackName}"
+    AURORA_REGION: ${self:provider.region}
+
+  httpApi:
+    cors: true
+    payload: "2.0"
+    authorizers:
+      <%= title %>Authorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: "https://cognito-idp.#{AWS::Region}.amazonaws.com/#{<%= title %>UserPool}"
+        audience:
+          - Ref: <%= title %>UserPoolClient
+  logs:
+    httpApi: true
+  tracing:
+    apiGateway: true
+    lambda: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action: secretsmanager:GetSecretValue
+      Resource:
+        # RDS secrets
+        - "arn:aws:secretsmanager:#{AWS::Region}:#{AWS::AccountId}:secret:${self:custom.secrets.rds}*"
+    # aurora data-api
+    - Effect: Allow
+      Action:
+        - rds-data:ExecuteStatement
+        - rds-data:BatchExecuteStatement
+        - rds-data:BeginTransaction
+        - rds-data:RollbackTransaction
+        - rds-data:CommitTransaction
+        - rds-data:BeginTransaction
+      Resource: "arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:<%= title %>-*"
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+  - serverless-pseudo-parameters
+  - serverless-dotenv-plugin
+  - serverless-plugin-optimize
+
+functions:
+  listUsers: # Paginated list of users
+    handler: src/api/user/listUsers.listUsers
+    events:
+      - httpApi:
+          method: GET
+          path: /user
+          integration: lambda
+          # authorizer: <%= title %>Authorizer # Should be commented out for sls offlie to work
+
+resources:
+  - ${file(cloudformation/vpc.yml)}
+  - ${file(cloudformation/aurora-serverless.yml)}
+  - ${file(cloudformation/bastion.yml)}
+  - ${file(cloudformation/cognito.yml)}
