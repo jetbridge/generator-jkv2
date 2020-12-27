@@ -1,7 +1,13 @@
 {
     "name": "generator-jkv2",
     "version": "0.1.0",
-    "description": "",
+    "description": "Opinionated Yeoman generator for full-stack mono-repo TypeScript projects.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jetbridge/generator-jkv2.git"
+    },
+    "author": "Dmytro Yankovskyi <dmytro@jetbridge.com>",
+    "license": "MIT",
     "files": [
         "generators"
     ],
