@@ -21,7 +21,7 @@ module.exports = class extends Generator {
         ])
     }
 
-    writing() {
+    async writing() {
         /*
         Create a TypeORM model file in the core package
 

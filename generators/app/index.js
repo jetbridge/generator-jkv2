@@ -7,6 +7,7 @@ module.exports = class extends Generator {
             name: 'title',
             message: 'Your project title',
         }])
+        // TODO: ask user if he wants a full-stack app or only backend to be generated
     }
 
     writing() {
@@ -19,14 +20,15 @@ module.exports = class extends Generator {
             },
             null
             ,
-            { globOptions: { dot: true } }
+            { globOptions: { dot: true } }  // allow files that start with "." to be copied as well e.g. .env 
         )
     }
 
     install() {
         this.npmInstall([], { 'legacy-peer-deps': true })
 
-        this.spawnCommandSync("npm", ["install", "--legacy-peer-deps"], { cwd: 'packages/core' })  // For the TypeORM commands to run properly with TS we need to do that install
+        // For the TypeORM commands to run properly with TS we need to run "install" in the core package
+        this.spawnCommandSync("npm", ["install", "--legacy-peer-deps"], { cwd: 'packages/core' })
 
         // Create a git repo
         this.spawnCommandSync('git', ['init']);
@@ -35,7 +37,8 @@ module.exports = class extends Generator {
     }
 
     end() {
-        this.spawnCommandSync("npm", ["run", "db:init:local"], { cwd: 'packages/core' })  // Initialize DB
+        // Initialize DB
+        this.spawnCommandSync("npm", ["run", "db:init:local"], { cwd: 'packages/core' })
     }
 
 

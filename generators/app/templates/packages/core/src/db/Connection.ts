@@ -6,10 +6,10 @@ import * as pg from "pg"
 import { LoggerOptions } from "typeorm/logger/LoggerOptions"
 
 // instrument queries with xray
-// if (!process.env.USE_LOCAL_DB) {
-//     const AWSXRay = require("aws-xray-sdk")
-//     AWSXRay.capturePostgres(pg)
-// }
+if (!process.env.USE_LOCAL_DB && !process.env.USE_TEST_DB) {
+    const AWSXRay = require("aws-xray-sdk")
+    AWSXRay.capturePostgres(pg)
+}
 
 // list of entities from core go here
 const ALL_ENTITIES = [User]
