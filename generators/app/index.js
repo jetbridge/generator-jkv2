@@ -49,6 +49,9 @@ module.exports = class extends Generator {
     end() {
         // Initialize DB
         this.spawnCommandSync("npm", ["run", "db:init:local"], { cwd: 'packages/backend' })
+
+        // Save project title to reuse it in other generators
+        this.config.set('projectName', this.answers.title)
     }
 
 

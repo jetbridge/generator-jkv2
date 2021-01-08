@@ -1,0 +1,45 @@
+
+list<%= capitalizedModelName %>s:
+    handler: src/api/<%= modelName %>/crud.list
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: GET
+          path: /<%= modelName %>
+          integration: lambda
+
+create<%= capitalizedModelName %>:
+    handler: src/api/<%= modelName %>/crud.create
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: POST
+          path: /<%= modelName %>
+          integration: lambda
+
+get<%= capitalizedModelName %>ById:
+    handler: src/api/<%= modelName %>/crud.getById
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: GET
+          path: /<%= modelName %>/{<%= modelName %>Id}
+          integration: lambda
+
+update<%= capitalizedModelName %>ById:
+    handler: src/api/<%= modelName %>/crud.updateById
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: PATCH
+          path: /<%= modelName %>/{<%= modelName %>Id}
+          integration: lambda
+  
+delete<%= capitalizedModelName %>ById:
+    handler: src/api/<%= modelName %>/crud.delete
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: DELETE
+          path: /<%= modelName %>/{<%= modelName %>Id}
+          integration: lambda

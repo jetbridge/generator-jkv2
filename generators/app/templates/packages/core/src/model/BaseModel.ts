@@ -5,8 +5,8 @@ export class BaseModel {
     id: string
 
     @CreateDateColumn()
-    created_at: Date
+    createdAt: Date
 
     @UpdateDateColumn()
-    updated_at: Date
+    updatedAt: Date
 }

@@ -1,12 +1,12 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import {MigrationInterface, QueryRunner} from "typeorm";
 
-export class init1609757045524 implements MigrationInterface {
-    name = 'init1609757045524'
+export class init1610112086599 implements MigrationInterface {
+    name = 'init1610112086599'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "genre" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "name" character varying, CONSTRAINT "PK_0285d4f1655d080cfcf7d1ab141" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TYPE "game_reception_enum" AS ENUM('positive', 'mixed', 'negative')`);
-        await queryRunner.query(`CREATE TABLE "game" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "name" character varying, "reception" "game_reception_enum", "developer_studio_id" uuid, CONSTRAINT "PK_352a30652cd352f552fef73dec5" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "game" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "name" character varying, "release_date" TIMESTAMP WITH TIME ZONE, "reception" "game_reception_enum", "developer_studio_id" uuid, CONSTRAINT "PK_352a30652cd352f552fef73dec5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "developer_studio" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "name" character varying, CONSTRAINT "PK_becfb927b545ee9970c5b4597f3" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "game_genre" ("genre_id" uuid NOT NULL, "game_id" uuid NOT NULL, CONSTRAINT "PK_cb7a037273a320371d5d46e0087" PRIMARY KEY ("genre_id", "game_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_e2614c7455fe03de781aa59ed6" ON "game_genre" ("genre_id") `);

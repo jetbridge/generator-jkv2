@@ -1,5 +1,9 @@
 # JKv2 Yeoman generator
-Used to scaffold mono-repo web apps
+Opinionated generator for mono-repo web apps.
+
+Features:
+- No framework. Just functions and API Gateway
+- Postgres & TypeORM
 
 ## How to use?
 ### Pre-requisites
