@@ -1,20 +1,56 @@
-require("dotenv-flow").config()
+import { config } from '../config'
 import { Connection, ConnectionManager, ConnectionOptions, createConnection, getConnectionManager } from "typeorm"
 import { SnakeNamingStrategy } from "typeorm-naming-strategies/snake-naming.strategy"
-import { User } from "../model/User"
-import * as pg from "pg"
 import { LoggerOptions } from "typeorm/logger/LoggerOptions"
+import * as pg from "pg"
+import { Game, Genre, DeveloperStudio } from "<%= title %>-core"
+import * as AWS from "aws-sdk"
 
 // instrument queries with xray
-if (!process.env.USE_LOCAL_DB && !process.env.USE_TEST_DB) {
+if (config.get('db').enableXRay) {
     const AWSXRay = require("aws-xray-sdk")
     AWSXRay.capturePostgres(pg)
 }
 
 // list of entities from core go here
-const ALL_ENTITIES = [User]
+const ALL_ENTITIES = [Game, DeveloperStudio, Genre]
+
+interface IDBSecret {
+    password?: string
+    dbname?: string
+    engine?: string
+    port?: string
+    host?: string
+    username?: string
+}
+
+
+const dbSecretToUrl = (secret: IDBSecret) => {
+    /* Given a database secret construct a connection URL. */
+    const password = secret.password
+    const dbname = secret.dbname
+    const engine = secret.engine
+    const port = secret.port
+    const host = secret.host
+    const username = secret.username
+
+    return `${engine}://${username}:${password}@${host}:${port}/${dbname}`
+}
+
+const getRDSSecret = async (): Promise<IDBSecret> => {
+    if (!config.get('db').auroraSecretArn || !config.get('db').auroraRegion) return {}
+
+    console.debug("Before getting secret")
+    const mgr = new AWS.SecretsManager({ region: config.get('db').auroraRegion })
+    const secret = await mgr.getSecretValue({ SecretId: config.get('db').auroraSecretArn }).promise()
+
+    console.debug(`Got the secret ${secret}`)
+    return await JSON.parse(secret.SecretString || "{}")
+}
 
 const CONNECTION_NAME = "default"
+
+
 
 /**
  * Database manager class
@@ -38,40 +74,39 @@ export class Database {
                 connection = await connection.connect()
             }
         } else {
-            connection = await createConnection(getConnectionOptions())
+            connection = await createConnection(await getConnectionOptions())
         }
 
         return connection
     }
 }
 
-export function getConnectionOptions(): ConnectionOptions {
+export async function getConnectionOptions(): Promise<ConnectionOptions> {
     let connectionOptions: ConnectionOptions
     let logging: LoggerOptions
-    if (process.env.SQL_ECHO) {
+    if (config.get('db').sqlEcho) {
         logging = ["query", "error"]
     }
     else {
         logging = ["error"]
     }
 
-    if (process.env.USE_LOCAL_DB) {
+    if (config.get('db').useLocal) {
         console.debug("Using local database...")
         // local DB
         connectionOptions = {
             entities: ALL_ENTITIES,
             type: `postgres`,
             port: 5432,
-            database: process.env.DB_NAME,
-            host: process.env.DB_HOST,
+            database: "<%= title %>",
+            host: "localhost",
             namingStrategy: new SnakeNamingStrategy(),
             logging: logging, // log queries
         }
     }
-    else if (process.env.USE_TEST_DB) {
-        console.debug("Using test database")
+    else if (config.get('db').useTest) {
+        console.debug("Using test database...")
 
-        // test DB
         connectionOptions = {
             entities: ALL_ENTITIES,
             type: `postgres`,
@@ -81,33 +116,34 @@ export function getConnectionOptions(): ConnectionOptions {
             dropSchema: true,  // dropDB with every connection
             host: "localhost",
             namingStrategy: new SnakeNamingStrategy(),
-            logging: true,
+            logging: logging,
         }
     }
     else {
         console.debug("Using remote database...")
-        if (!process.env.AURORA_SECRET_ARN || !process.env.AURORA_ARN || !process.env.AURORA_REGION) {
+        if (!config.get('db').auroraSecretArn || !config.get('db').auroraRegion) {
             console.error("AURORA_SECRET_ARN or AURORA_ARN or AURORA_REGION not defined")
             throw new Error("Couldn't get RDS ARNs from environment.")
         }
-        // aurora sls
+
+        const secret = await getRDSSecret()
+
+        const databaseURL = dbSecretToUrl(secret)
+
         connectionOptions = {
             entities: ALL_ENTITIES,
-            type: "aurora-data-api-pg",
-            database: "<%= title %>",
-            secretArn: process.env.AURORA_SECRET_ARN,
-            resourceArn: process.env.AURORA_ARN,
-            region: process.env.AURORA_REGION,
+            type: "postgres",
+            url: databaseURL,
+            migrations: ["./_optimize/build/src/db/migrations/*.js"],
             logging: logging, // log queries
             name: CONNECTION_NAME,
             namingStrategy: new SnakeNamingStrategy(),
         }
     }
 
-    // Don't need a pwd locally
-    if (process.env.DB_PASSWORD) {
+    if (config.get('db').dbPassword) {
         Object.assign(connectionOptions, {
-            password: process.env.DB_PASSWORD,
+            password: config.get('db').dbPassword,
         })
     }
 

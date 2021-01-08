@@ -14,10 +14,14 @@ module.exports = class extends Generator {
         this.answers = await this.prompt([{
             type: 'input',
             name: 'modelName',
-            message: 'Enter the name of the model',
+            message: 'Enter the name of the new model',
+        },
+        {
+            type: 'confirm',
+            name: 'generateCRUD',
+            message: 'Generate CRUD API for the model?',
+            default: true
         }
-            // TODO: Ask user if he wants the CRUD API to be generated for the model
-            // TODO: Ask user if he wants the model to include columns dedicated to S3
         ])
     }
 

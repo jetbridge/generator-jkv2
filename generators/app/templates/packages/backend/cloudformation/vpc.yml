@@ -48,9 +48,9 @@ Resources:
     Properties:
       DBSubnetGroupDescription: "NAT-ed"
       SubnetIds:
-        - Ref: PublicSubnetA
-        - Ref: PublicSubnetB
-        - Ref: PublicSubnetC
+      - Ref: PublicSubnetA
+      - Ref: PublicSubnetB
+      - Ref: PublicSubnetC
 
   # route public subnet to IGW
   PublicRouteTable:
@@ -66,7 +66,7 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref IGW
-  PublicARouteTableAssociation: # link public subnets to PublicRouteTable
+  PublicARouteTableAssociation:  # link public subnets to PublicRouteTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
@@ -83,9 +83,9 @@ Resources:
       SubnetId: !Ref PublicSubnetC
 
   # internet gateway
-  IGW: # Internet GateWay
+  IGW:  # Internet GateWay
     Type: AWS::EC2::InternetGateway
-  IGWAttachment: # Connect IGW to our VPC
+  IGWAttachment:  # Connect IGW to our VPC
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref IGW
@@ -93,19 +93,111 @@ Resources:
 
   # SSH for bastion
   BastionSecurityGroup:
-    Type: "AWS::EC2::SecurityGroup"
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: "#{AWS::StackName}"
+      GroupDescription: '#{AWS::StackName}'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: "0.0.0.0/0"
+          CidrIp: '0.0.0.0/0'
         - IpProtocol: icmp
           FromPort: -1
           ToPort: -1
-          CidrIp: "0.0.0.0/0"
+          CidrIp: '0.0.0.0/0'
+      Tags:
+      - Key: Name
+        Value: '#{AWS::StackName}-BastionSecurityGroup'
+
+
+  # LAMBDA VPC STUFF
+  ServerlessSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
       Tags:
         - Key: Name
-          Value: "#{AWS::StackName}-BastionSecurityGroup"
+          Value: "#{AWS::StackName} Lambda"
+      VpcId:
+        Ref: VPC
+      AvailabilityZone: "#{AWS::Region}a"
+      CidrBlock: "10.0.10.0/24"
+  ServerlessSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "#{AWS::StackName} Lambda"
+      VpcId:
+        Ref: VPC
+      AvailabilityZone: "#{AWS::Region}b"
+      CidrBlock: "10.0.11.0/24"
+  ServerlessSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "#{AWS::StackName} Lambda"
+      VpcId:
+        Ref: VPC
+      AvailabilityZone: "#{AWS::Region}c"
+      CidrBlock: "10.0.12.0/24"
+
+  NATIP:  # IP for public NAT
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NatGatewayA:  # NAT GW in public subnet
+    # technically there should be three of these in case AZ "A" fails
+    Type: AWS::EC2::NatGateway
+    DependsOn:
+      - NATIP
+    Properties:
+      AllocationId: !GetAtt NATIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+  PrivateRouteTable:  # Route table for internal routing
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: "#{AWS::StackName} Private"
+  DefaultPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - NatGatewayA
+      - PrivateRouteTable
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+  SubARouteTableAssociation:  # link private subnets to PrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref ServerlessSubnetA
+  SubBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref ServerlessSubnetB
+  SubCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref ServerlessSubnetC
+
+  ServerlessPrivateSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "NAT-ed"
+      SubnetIds:
+      - Ref: ServerlessSubnetA
+      - Ref: ServerlessSubnetB
+      - Ref: ServerlessSubnetC
+
+  ServerlessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SecurityGroup for Serverless Functions
+      VpcId: !Ref VPC

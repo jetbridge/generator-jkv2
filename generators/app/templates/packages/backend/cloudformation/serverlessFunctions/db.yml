@@ -1,0 +1,14 @@
+migrate:
+    handler: src/db/runMigrations.runMigrations
+    timeout: 30
+    vpc: ${self:custom.vpc}
+    optimize:
+        debug: true
+        includePaths: [ "../build/src/db/migrations" ]
+
+seed:
+    handler: src/db/runSeed.runSeed
+    timeout: 30
+    vpc: ${self:custom.vpc}
+    optimize:
+        debug: true

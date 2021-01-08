@@ -56,84 +56,81 @@ Resources:
     Condition: BastionEnabled
     Properties:
       Subscription:
-        - Endpoint: ${self:custom.bastion.alertEmails}
-          Protocol: email
+      - Endpoint: ${self:custom.bastion.alertEmails}
+        Protocol: email
 
   BastionMainLogGroup:
-    Type: "AWS::Logs::LogGroup"
+    Type: 'AWS::Logs::LogGroup'
     # Condition: BastionEnabled
     Properties:
       LogGroupName: "${self:custom.stackName}-bastion"
       RetentionInDays: ${self:custom.bastion.logRetentionInDays}
 
   SSHMetricFilter:
-    Type: "AWS::Logs::MetricFilter"
+    Type: 'AWS::Logs::MetricFilter'
     Condition: BastionEnabled
     Properties:
       LogGroupName: !Ref BastionMainLogGroup
       FilterPattern: ON FROM USER PWD
       MetricTransformations:
         - MetricName: SSHCommandCount
-          MetricValue: "1"
+          MetricValue: '1'
           MetricNamespace: "Bastion/#{AWS::StackName}"
 
   BastionHostRole:
-    Type: "AWS::IAM::Role"
+    Type: 'AWS::IAM::Role'
     Condition: BastionEnabled
     Properties:
       Policies:
         - PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Action:
-                  - "s3:GetObject"
+                  - 's3:GetObject'
                 Resource:
-                  - "arn:aws:s3:::ops.jetbridge.com/public/*"
+                  - 'arn:aws:s3:::ops.jetbridge.com/public/*'
                 Effect: Allow
           PolicyName: jetbridge-ops-get-public-s3-policy
         - PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Action:
-                  - "logs:CreateLogStream"
-                  - "logs:GetLogEvents"
-                  - "logs:PutLogEvents"
-                  - "logs:DescribeLogGroups"
-                  - "logs:DescribeLogStreams"
-                  - "logs:PutRetentionPolicy"
-                  - "logs:PutMetricFilter"
-                  - "logs:CreateLogGroup"
+                  - 'logs:CreateLogStream'
+                  - 'logs:GetLogEvents'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                  - 'logs:PutRetentionPolicy'
+                  - 'logs:PutMetricFilter'
+                  - 'logs:CreateLogGroup'
                 Resource:
-                  - !Join [
-                      ":",
-                      ["arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:log-group:", !Ref BastionMainLogGroup, "*"],
-                    ]
+                  - !Join [':', ['arn:aws:logs:#{AWS::Region}:#{AWS::AccountId}:log-group:', !Ref BastionMainLogGroup, '*']]
                 Effect: Allow
           PolicyName: bastion-cloudwatch-logs-policy
         - PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
               - Action:
-                  - "ec2:AssociateAddress"
-                  - "ec2:DescribeAddresses"
+                  - 'ec2:AssociateAddress'
+                  - 'ec2:DescribeAddresses'
                 Resource:
-                  - "*"
+                  - '*'
                 Effect: Allow
           PolicyName: bastion-eip-policy
       Path: /
       AssumeRolePolicyDocument:
         Statement:
           - Action:
-              - "sts:AssumeRole"
+              - 'sts:AssumeRole'
             Principal:
               Service:
                 - ec2.amazonaws.com
             Effect: Allow
-        Version: "2012-10-17"
+        Version: '2012-10-17'
 
   BastionHostProfile:
     Condition: BastionEnabled
-    Type: "AWS::IAM::InstanceProfile"
+    Type: 'AWS::IAM::InstanceProfile'
     Properties:
       Roles:
         - !Ref BastionHostRole
@@ -141,27 +138,27 @@ Resources:
 
   EIP:
     Condition: BastionEnabled
-    Type: "AWS::EC2::EIP"
+    Type: 'AWS::EC2::EIP'
     Properties:
       Domain: vpc
 
   BastionAutoScalingGroup:
     Condition: BastionEnabled
-    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
-      DesiredCapacity: "1"
+      DesiredCapacity: '1'
       LaunchConfigurationName: !Ref BastionLaunchConfiguration
-      MaxSize: "1"
-      MinSize: "1"
+      MaxSize: '1'
+      MinSize: '1'
       Tags:
-        - Key: Name
-          Value: "#{AWS::StackName}-BastionHost"
-          PropagateAtLaunch: true
+      - Key: Name
+        Value: '#{AWS::StackName}-BastionHost'
+        PropagateAtLaunch: true
       NotificationConfigurations:
-        - TopicARN: !Ref EC2SNSTopic
-          NotificationTypes:
-            - "autoscaling:EC2_INSTANCE_LAUNCH_ERROR"
-            - "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+      - TopicARN: !Ref EC2SNSTopic
+        NotificationTypes:
+        - 'autoscaling:EC2_INSTANCE_LAUNCH_ERROR'
+        - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
       VPCZoneIdentifier:
         - !Ref PublicSubnetA
         - !Ref PublicSubnetB
@@ -174,31 +171,31 @@ Resources:
       AutoScalingRollingUpdate:
         PauseTime: PT10M
         SuspendProcesses:
-          - HealthCheck
-          - ReplaceUnhealthy
-          - AZRebalance
-          - AlarmNotification
-          - ScheduledActions
+        - HealthCheck
+        - ReplaceUnhealthy
+        - AZRebalance
+        - AlarmNotification
+        - ScheduledActions
         WaitOnResourceSignals: true
 
   BastionLaunchConfiguration:
     Condition: BastionEnabled
-    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
     Metadata:
       # unused
       # can be used to authenticate to fetch private bootstrap scripts from S3
-      "AWS::CloudFormation::Authentication":
+      'AWS::CloudFormation::Authentication':
         S3AccessCreds:
           type: S3
           roleName: !Ref BastionHostRole
           buckets:
             - "ops.jetbridge.com"
-      "AWS::CloudFormation::Init":
+      'AWS::CloudFormation::Init':
         config:
           files:
             /tmp/bastion_bootstrap.sh:
               source: "${self:custom.bastion.bootstrap}"
-              mode: "000550"
+              mode: '000550'
               owner: root
               group: root
               # authentication: S3AccessCreds
@@ -219,22 +216,23 @@ Resources:
           commands:
             b-bootstrap:
               command: !Join
-                - ""
+                - ''
                 - - ./tmp/bastion_bootstrap.sh
-                  - " --banner ${self:custom.bastion.banner}"
-                  - " --enable ${self:custom.bastion.bannerEnabled}"
-                  - " --tcp-forwarding ${self:custom.bastion.tcpForwardingEnabled}"
-                  - " --x11-forwarding ${self:custom.bastion.x11ForwardingEnabled}"
+                  - ' --banner ${self:custom.bastion.banner}'
+                  - ' --enable ${self:custom.bastion.bannerEnabled}'
+                  - ' --tcp-forwarding ${self:custom.bastion.tcpForwardingEnabled}'
+                  - ' --x11-forwarding ${self:custom.bastion.x11ForwardingEnabled}'
     Properties:
       AssociatePublicIpAddress: true
+      PlacementTenancy: ${self:custom.bastion.tenancy}
       KeyName: ${self:custom.bastion.sshKeyPairName}
       IamInstanceProfile: !Ref BastionHostProfile
       ImageId: !FindInMap
         - AWSAMIRegionMap
-        - !Ref "AWS::Region"
+        - !Ref 'AWS::Region'
         - !FindInMap
           - LinuxAMINameMap
-          - "Amazon-Linux-HVM"
+          - 'Amazon-Linux-HVM'
           - Code
       SecurityGroups:
         - !Ref BastionSecurityGroup
@@ -243,8 +241,8 @@ Resources:
       # install postgresql
       # signal cloudformation that we've initialized correctly
       UserData: !Base64
-        "Fn::Join":
-          - ""
+        'Fn::Join':
+          - ''
           - - |
               #!/bin/bash
             - |
@@ -259,24 +257,24 @@ Resources:
             - !Ref BastionMainLogGroup
             - |+
 
-            - "/opt/aws/bin/cfn-init -v --stack "
-            - !Ref "AWS::StackName"
-            - " --resource BastionLaunchConfiguration --region "
-            - !Ref "AWS::Region"
+            - '/opt/aws/bin/cfn-init -v --stack '
+            - !Ref 'AWS::StackName'
+            - ' --resource BastionLaunchConfiguration --region '
+            - !Ref 'AWS::Region'
             - |+
 
-            - "/opt/aws/bin/cfn-signal -e $? --stack "
-            - !Ref "AWS::StackName"
-            - " --resource BastionAutoScalingGroup --region "
-            - !Ref "AWS::Region"
+            - '/opt/aws/bin/cfn-signal -e $? --stack '
+            - !Ref 'AWS::StackName'
+            - ' --resource BastionAutoScalingGroup --region '
+            - !Ref 'AWS::Region'
             - |+
 
   CPUTooHighAlarm:
-    Type: "AWS::CloudWatch::Alarm"
+    Type: 'AWS::CloudWatch::Alarm'
     Condition: BastionEnabled
     Properties:
-      AlarmDescription: "Average CPU utilization over last 10 minutes higher than 80%"
-      Namespace: "AWS/EC2"
+      AlarmDescription: 'Average CPU utilization over last 10 minutes higher than 80%'
+      Namespace: 'AWS/EC2'
       MetricName: CPUUtilization
       Statistic: Average
       Period: 600
@@ -284,10 +282,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       Threshold: 80
       AlarmActions:
-        - Ref: EC2SNSTopic
+      - Ref: EC2SNSTopic
       Dimensions:
-        - Name: AutoScalingGroupName
-          Value: !Ref BastionAutoScalingGroup
+      - Name: AutoScalingGroupName
+        Value: !Ref BastionAutoScalingGroup
 
 Outputs:
   EIP:
@@ -295,28 +293,28 @@ Outputs:
     Description: The public IP address of the SSH bastion host/instance
     Value: !Ref EIP
     Export:
-      Name: "#{AWS::StackName}-EIP"
+      Name: '#{AWS::StackName}-EIP'
 
   SSHCommand:
     Description: SSH command line
     Condition: BastionEnabled
     Value: !Join
-      - ""
-      - - 'ssh -i "'
-        - "~/.ssh/"
-        - ${self:custom.bastion.sshKeyPairName}
-        - '.pem" '
-        - "ec2-user@"
-        - !Ref EIP
+             - ''
+             - - 'ssh -i "'
+               - '~/.ssh/'
+               - ${self:custom.bastion.sshKeyPairName}
+               - '.pem" '
+               - 'ec2-user@'
+               - !Ref EIP
 
   PSQLCommand:
     Description: psql command line
     Condition: BastionEnabled
     Value: !Join
-      - ""
-      - - "psql -h "
-        - !GetAtt DBCluster.Endpoint.Address
-        - " -p "
-        - !GetAtt DBCluster.Endpoint.Port
-        - " -U dbadmin "
-        - ${self:custom.db.dbname}
+             - ''
+             - - 'psql -h '
+               - !GetAtt DBCluster.Endpoint.Address
+               - ' -p '
+               - !GetAtt DBCluster.Endpoint.Port
+               - ' -U dbadmin '
+               - ${self:custom.db.dbname}

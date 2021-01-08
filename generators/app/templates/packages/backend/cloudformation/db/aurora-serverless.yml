@@ -39,8 +39,24 @@ Resources:
 
       DatabaseName: ${self:custom.db.dbname}
       DBClusterIdentifier: "#{AWS::StackName}"
-      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref RDSInstanceSecret, ":SecretString:username}}"]]
-      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref RDSInstanceSecret, ":SecretString:password}}"]]
+      MasterUsername:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref RDSInstanceSecret,
+            ":SecretString:username}}",
+          ],
+        ]
+      MasterUserPassword:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref RDSInstanceSecret,
+            ":SecretString:password}}",
+          ],
+        ]
       VpcSecurityGroupIds:
         - "Fn::GetAtt": DBSecurityGroup.GroupId
       DBSubnetGroupName: !Ref DBSubnetGroup
@@ -53,11 +69,16 @@ Resources:
       VpcId:
         Ref: VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          # give access to our bastion host
-          SourceSecurityGroupId: !Ref BastionSecurityGroup
+      - IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        # give access to our bastion host
+        SourceSecurityGroupId: !Ref BastionSecurityGroup
+      - IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        # give access to lambda
+        SourceSecurityGroupId: !Ref ServerlessSecurityGroup
 
   # VPC subnet
   DBSubnetA:
@@ -95,14 +116,15 @@ Resources:
     Properties:
       DBSubnetGroupDescription: "Database"
       SubnetIds:
-        - Ref: DBSubnetA
-        - Ref: DBSubnetB
-        - Ref: DBSubnetC
+      - Ref: DBSubnetA
+      - Ref: DBSubnetB
+      - Ref: DBSubnetC
+
 
 Outputs:
   AuroraClusterARN:
     Description: Aurora Cluster ARN
-    Value: !Join [":", ["arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster", !Ref DBCluster]]
+    Value: !Join [':', ["arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster", !Ref DBCluster]]
 
   AuroraSecretARN:
     Description: Aurora Secret ARN

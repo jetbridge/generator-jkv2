@@ -1,7 +1,7 @@
 service: <%= title %>
 
 package:
-  individually: true
+  individually: false
 
 custom:
   stackName: ${self:service}-${self:provider.stage}
@@ -14,7 +14,7 @@ custom:
   CognitoAddCustomAttributes:
     CognitoUserPoolIdOutputKey: <%= title %>UserPool
     CognitoUserPoolClientIdOutputKey: <%= title %>UserPoolClient
-
+  
   db:
     dbname: "<%= title %>"
     minCapacity: 2
@@ -34,13 +34,24 @@ custom:
   secrets:
     prefix: "${self:service}/${self:provider.stage}"
     rds: "${self:custom.secrets.prefix}/rds/credentials"
+  
+  vpc:
+    securityGroupIds:
+      - "Fn::GetAtt": ServerlessSecurityGroup.GroupId
+    subnetIds:
+      - Ref: ServerlessSubnetA
+      - Ref: ServerlessSubnetB
+      - Ref: ServerlessSubnetC
+  
+  optimize:
+    debug: true
 
 provider:
   name: aws
   runtime: nodejs12.x
   stage: ${opt:stage, 'dev'}
-  region: ${opt:region, 'us-east-1'}
-  profile: ${env:AWS_PROFILE, '<%= title %>-dev'}
+  region: ${opt:region, 'eu-west-1'}
+  profile: ${env:AWS_PROFILE, 'hrt'}
 
   environment:
     STAGE: ${self:provider.stage}
@@ -48,6 +59,7 @@ provider:
     BASE_URL: ${self:custom.BASE_URL}
     AURORA_ARN: "arn:aws:rds:#{AWS::Region}:#{AWS::AccountId}:cluster:${self:custom.stackName}"
     AURORA_REGION: ${self:provider.region}
+    ENABLE_XRAY: true
 
   httpApi:
     cors: true
@@ -88,17 +100,11 @@ plugins:
   - serverless-plugin-optimize
 
 functions:
-  listUsers: # Paginated list of users
-    handler: src/api/user/listUsers.listUsers
-    events:
-      - httpApi:
-          method: GET
-          path: /user
-          integration: lambda
-          # authorizer: <%= title %>Authorizer # Should be commented out for sls offlie to work
+  - ${file(cloudformation/serverlessFunctions/app.yml)}  # API Gateway Lambdas
+  - ${file(cloudformation/serverlessFunctions/db.yml)}  # DB Lambdas (migrations, seeding, etc.)
 
 resources:
   - ${file(cloudformation/vpc.yml)}
-  - ${file(cloudformation/aurora-serverless.yml)}
+  - ${file(cloudformation/db/aurora-serverless.yml)}
   - ${file(cloudformation/bastion.yml)}
   - ${file(cloudformation/cognito.yml)}

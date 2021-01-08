@@ -1,10 +1,11 @@
-require("dotenv-flow").config()
-import { Database } from "./db/Connection"
-export { User } from "./model/User"
-export { BaseModel } from "./model/BaseModel"
+// DB models
+export { DeveloperStudio } from "./model/developerStudio"
+export { Game } from "./model/game"
+export { Genre } from "./model/genre"
+export { BaseModel } from "./model/baseModel"
+
+// Factories
+export { gameFactory } from "./factory/game.factory"
+
+// Utilities
 export * from './util/pagination'
-
-export { Database } from "./db/Connection"
-
-// this might be wrong
-export const db = new Database()
