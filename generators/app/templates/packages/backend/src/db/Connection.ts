@@ -134,7 +134,7 @@ export async function getConnectionOptions(): Promise<ConnectionOptions> {
             entities: ALL_ENTITIES,
             type: "postgres",
             url: databaseURL,
-            migrations: ["./_optimize/build/src/db/migrations/*.js"],
+            migrations: ["./build/src/db/migrations/*.js"],
             logging: logging, // log queries
             name: CONNECTION_NAME,
             namingStrategy: new SnakeNamingStrategy(),

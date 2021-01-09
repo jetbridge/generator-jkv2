@@ -18,7 +18,7 @@ Resources:
       DBInstanceClass: ${self:custom.db.instance_class}
       AllocatedStorage: ${self:custom.db.storage}
       VPCSecurityGroups:
-      - "Fn::GetAtt": DBSecurityGroup.GroupId
+        - Fn::GetAtt: [DBSecurityGroup, GroupId]
       DBSubnetGroupName: !Ref DBSubnetGroup
 
   # DB login secret

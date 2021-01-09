@@ -58,7 +58,7 @@ Resources:
           ],
         ]
       VpcSecurityGroupIds:
-        - "Fn::GetAtt": DBSecurityGroup.GroupId
+        - Fn::GetAtt: [DBSecurityGroup, GroupId]
       DBSubnetGroupName: !Ref DBSubnetGroup
 
   # VPC security group

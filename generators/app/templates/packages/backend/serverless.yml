@@ -1,7 +1,9 @@
 service: <%= title %>
 
 package:
-  individually: false
+  individually: true
+  include: 
+    - build/src/db/migrations/**  # For migrations to run properly
 
 custom:
   stackName: ${self:service}-${self:provider.stage}
@@ -37,14 +39,11 @@ custom:
   
   vpc:
     securityGroupIds:
-      - "Fn::GetAtt": ServerlessSecurityGroup.GroupId
+      - Fn::GetAtt: [ServerlessSecurityGroup, GroupId]
     subnetIds:
       - Ref: ServerlessSubnetA
       - Ref: ServerlessSubnetB
       - Ref: ServerlessSubnetC
-  
-  optimize:
-    debug: true
 
 provider:
   name: aws
