@@ -16,8 +16,10 @@
     "build:all": "npm run build:core && npm run build",
     "lint": "eslint src/**/*.ts",
     "start": "NODE_ENV=local sls offline",
-    "deploy:dev": "NODE_ENV=development sls deploy -s dev3",
-    "deploy:prod": "NODE_ENV=production sls deploy -s prod",
+    "sls:deploy:dev": "export NODE_ENV=development && npm run build:all && sls deploy",
+    "sls:remove:dev": "NODE_ENV=development sls remove",
+    "sls:migrate:dev": "NODE_ENV=development sls invoke -f migrate",
+    "sls:seed:dev": "NODE_ENV=development sls invoke -f seed",
     "update:sls": "npm install -d serverless@latest serverless-offline@latest serverless-plugin-optimize@latest serverless-plugin-typescript@latest serverless-layers@latest serverless-dotenv-plugin@latest"
   },
   "author": "",
