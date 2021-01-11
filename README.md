@@ -5,17 +5,17 @@ Features:
 - No framework. Just functions and API Gateway
 - Postgres & TypeORM
 
-## How to use?
+## Quickstart
+
 ### Pre-requisites
-#### npm 7
-`npm i -g npm@7`
-##### Yeoman
-`npm i -g yo`
-##### JKv2 generator
-`npm i -g generator-jkv2`
+* npm 7
+* yeoman
+* jkv2 generator
 
-### Scaffold the app
-`yo jkv2`
+```shell
+npm i -g npm@7 yo generator-jkv2
+yo jkv2
+```
 
-### Add a new TypeORM DB model
+### Generate a new TypeORM DB model
 `yo jkv2:model`
