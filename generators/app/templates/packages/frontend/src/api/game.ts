@@ -25,19 +25,3 @@ export const listGames = async (pagination?: PaginationQuery): Promise<Game[]> =
 
   return result.items
 }
-
-export const createGame = async ({ name }: ICreateGameRequest): Promise<Game> => {
-
-  const path = "/game"
-
-  const result: Game = (await API.post(apiName, path, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: {
-      name: name,
-    },
-  })).data
-
-  return result
-}

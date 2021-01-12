@@ -9,10 +9,6 @@ const GameList: React.FC<IUserEditProps> = (props) => {
 
   const games = useResources(listGames)
 
-  React.useEffect(() => {
-    createGame({name: "Kekw"})
-  }, [])
-
   if (!games) return <>
     <Home />
     <h2>Loading...</h2></>
