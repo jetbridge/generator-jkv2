@@ -111,7 +111,7 @@ export async function getConnectionOptions(): Promise<ConnectionOptions> {
             entities: ALL_ENTITIES,
             type: `postgres`,
             port: 5432,
-            database: "newstuff_test",
+            database: "<%= title %>_test",
             synchronize: true,
             dropSchema: true,  // dropDB with every connection
             host: "localhost",
