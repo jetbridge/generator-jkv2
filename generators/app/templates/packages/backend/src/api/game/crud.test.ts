@@ -1,12 +1,8 @@
 import { db } from "../../db"
 import { Connection } from 'typeorm';
-import { Game, PaginatedResponse, gameFactory } from '<%= title %>-core'
-import { APIGatewayProxyEventV2 } from 'aws-lambda'
-import { list } from './crud'
-import { getById } from './crud'
-import { create } from './crud'
-import { updateById } from './crud'
-import { deleteById } from './crud'
+import { Game, PaginatedResponse, gameFactory, GameSchemaLite } from '<%= title %>-core'
+import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from 'aws-lambda'
+import { listHandler, getByIdHandler, createHandler, updateByIdHandler, deleteByIdHandler } from './crud'
 
 
 let conn: Connection
@@ -34,7 +30,7 @@ describe('Test entity API', () => {
 
             await repo.save(entity)
 
-            const entities: Game[] = (await list({} as APIGatewayProxyEventV2) as PaginatedResponse<Game>).items
+            const entities: Game[] = (await listHandler({} as APIGatewayProxyEventV2) as PaginatedResponse<Game>).items
 
             const entityIds: string[] = entities.map(e => e.id)
             expect(entityIds).toContain(entity.id)
@@ -42,16 +38,21 @@ describe('Test entity API', () => {
     )
 
     it(
-        "Test creating an entity.",
+        "Test creating an entity. Also test that the validator for request body works.",
         async () => {
-            const entity: Game = await create({ body: JSON.stringify(gameFactory.build()) } as unknown as APIGatewayProxyEventV2) as Game
+            await createHandler({ body: JSON.stringify({ name: 1234 }) } as unknown as APIGatewayProxyEventV2) as Game
 
             const repo = conn.getRepository(Game)
 
-            const count: number = await repo.createQueryBuilder("game").getCount()
+            let count: number = await repo.createQueryBuilder("game").getCount()
+
+            expect(count).toEqual(0)
+
+            await createHandler({ body: JSON.stringify(gameFactory.build()) } as unknown as APIGatewayProxyEventV2) as Game
+
+            count = await repo.createQueryBuilder("game").getCount()
 
             expect(count).toEqual(1)
-
         }
     )
 
@@ -67,7 +68,7 @@ describe('Test entity API', () => {
             // Save doesn't return id when `create` with relationships is used :(
             entityToGet = await repo.createQueryBuilder("game").getOneOrFail()
 
-            const receivedEntity: Game = await getById({ pathParameters: { gameId: entityToGet.id } } as unknown as APIGatewayProxyEventV2) as Game
+            const receivedEntity: Game = await getByIdHandler({ pathParameters: { gameId: entityToGet.id } } as unknown as APIGatewayProxyEventV2) as Game
 
             expect(receivedEntity.id).toEqual(entityToGet.id)
         }
@@ -89,7 +90,7 @@ describe('Test entity API', () => {
             entityToUpdate = await repo.createQueryBuilder("game").getOneOrFail()
 
             expect(entityToUpdate.name).not.toEqual(updatedEntity.name)
-            await updateById({ pathParameters: { gameId: entityToUpdate.id }, body: JSON.stringify(updatedEntity) } as unknown as APIGatewayProxyEventV2) as Game
+            await updateByIdHandler({ pathParameters: { gameId: entityToUpdate.id }, body: JSON.stringify(updatedEntity) } as unknown as APIGatewayProxyEventV2) as Game
 
             expect((await repo.findOneOrFail(entityToUpdate.id)).name).toEqual(updatedEntity.name)
         }
@@ -109,7 +110,7 @@ describe('Test entity API', () => {
 
             expect(await repo.createQueryBuilder("game").getCount()).toEqual(1)
 
-            await deleteById({ pathParameters: { gameId: entityToDelete.id } } as unknown as APIGatewayProxyEventV2) as Game
+            await deleteByIdHandler({ pathParameters: { gameId: entityToDelete.id } } as unknown as APIGatewayProxyEventV2) as Game
 
             expect(await repo.createQueryBuilder("game").getCount()).toEqual(0)
         }

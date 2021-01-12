@@ -1,13 +1,9 @@
 import { db } from "../../db"
 import { Connection } from 'typeorm'
 import faker from 'faker/locale/en_US'
-import { <%= capitalizedModelName %>, PaginatedResponse, <%= modelName %>Factory } from '<%= projectName %>-core'
-import { APIGatewayProxyEventV2 } from 'aws-lambda'
-import { list } from './crud'
-import { getById } from './crud'
-import { create } from './crud'
-import { updateById } from './crud'
-import { deleteById } from './crud'
+import { <%= capitalizedModelName %>, PaginatedResponse, <%= modelFactoryName %>, <%= modelSchemaName %> } from '<%= projectName %>-core'
+import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from 'aws-lambda'
+import { listHandler, getByIdHandler, createHandler, updateByIdHandler, deleteByIdHandler } from './crud'
 
 
 let conn: Connection
@@ -29,11 +25,11 @@ describe('Test entity API', () => {
         async () => {
             const repo = conn.getRepository(<%= capitalizedModelName %>)
 
-            const entity: <%= capitalizedModelName %> = repo.create(<%= modelName %>Factory.build())
+            const entity: <%= capitalizedModelName %> = repo.create(<%= modelFactoryName %>.build())
 
             await repo.save(entity)
 
-            const entities: <%= capitalizedModelName %>[] = (await list({} as APIGatewayProxyEventV2) as PaginatedResponse<<%= capitalizedModelName %>>).items
+            const entities: <%= capitalizedModelName %>[] = (await listHandler({} as APIGatewayProxyEventV2) as PaginatedResponse<<%= capitalizedModelName %>>).items
 
             const entityIds: string[] = entities.map(e => e.id)
             expect(entityIds).toContain(entity.id)
@@ -43,7 +39,7 @@ describe('Test entity API', () => {
     it(
         "Test creating an entity.",
         async () => {
-            const entity: <%= capitalizedModelName %> = await create({ body: JSON.stringify(<%= modelName %>Factory.build()) } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
+            const entity: <%= capitalizedModelName %> = await createHandler({ body: JSON.stringify(<%= modelFactoryName %>.build()) } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
 
             const repo = conn.getRepository(<%= capitalizedModelName %>)
 
@@ -59,14 +55,14 @@ describe('Test entity API', () => {
         async () => {
             const repo = conn.getRepository(<%= capitalizedModelName %>)
 
-            let entityToGet: <%= capitalizedModelName %> = repo.create(<%= modelName %>Factory.build())
+            let entityToGet: <%= capitalizedModelName %> = repo.create(<%= modelFactoryName %>.build())
 
             await repo.save(entityToGet)
 
             // Save doesn't return id when `create` with relationships is used :(
             entityToGet = await repo.createQueryBuilder("<%= modelName %>").getOneOrFail()
 
-            const receivedEntity: <%= capitalizedModelName %> = await getById({ pathParameters: { <%= modelName %>Id: entityToGet.id } } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
+            const receivedEntity: <%= capitalizedModelName %> = await getByIdHandler({ pathParameters: { <%= modelName %>Id: entityToGet.id } } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
 
             expect(receivedEntity.id).toEqual(entityToGet.id)
         }
@@ -77,9 +73,10 @@ describe('Test entity API', () => {
         async () => {
             const repo = conn.getRepository(<%= capitalizedModelName %>)
 
-            const originalEntity = <%= modelName %>Factory.build()
-            const updatedDate = faker.date.future()
-
+            const originalEntity = <%= modelFactoryName %>.build()
+            const updatedEntity = <%= modelFactoryName %>.build()
+            updatedEntity.createdAt = faker.date.future()
+            
             let entityToUpdate: <%= capitalizedModelName %> = repo.create(originalEntity)
 
             await repo.save(entityToUpdate)
@@ -87,10 +84,9 @@ describe('Test entity API', () => {
             // Save doesn't return id when `create` with relationships is used :(
             entityToUpdate = await repo.createQueryBuilder("<%= modelName %>").getOneOrFail()
 
-            expect(entityToUpdate.createdAt).not.toEqual(updatedDate)
-            await updateById({ pathParameters: { <%= modelName %>Id: entityToUpdate.id }, body: JSON.stringify({createdAt: updatedDate}) } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
+            await updateByIdHandler({ pathParameters: { <%= modelName %>Id: entityToUpdate.id }, body: updatedEntity } as unknown as { body: <%= capitalizedModelName %>, pathParameters: APIGatewayProxyEventPathParameters }) as <%= capitalizedModelName %>
 
-            expect((await repo.findOneOrFail(entityToUpdate.id)).createdAt).toEqual(updatedDate)
+            expect((await repo.findOneOrFail(entityToUpdate.id)).createdAt).toEqual(updatedEntity.createdAt)
         }
     )
 
@@ -99,7 +95,7 @@ describe('Test entity API', () => {
         async () => {
             const repo = conn.getRepository(<%= capitalizedModelName %>)
 
-            let entityToDelete: <%= capitalizedModelName %> = repo.create(<%= modelName %>Factory.build())
+            let entityToDelete: <%= capitalizedModelName %> = repo.create(<%= modelFactoryName %>.build())
 
             await repo.save(entityToDelete)
 
@@ -108,7 +104,7 @@ describe('Test entity API', () => {
 
             expect(await repo.createQueryBuilder("<%= modelName %>").getCount()).toEqual(1)
 
-            await deleteById({ pathParameters: { <%= modelName %>Id: entityToDelete.id } } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
+            await deleteByIdHandler({ pathParameters: { <%= modelName %>Id: entityToDelete.id } } as unknown as APIGatewayProxyEventV2) as <%= capitalizedModelName %>
 
             expect(await repo.createQueryBuilder("<%= modelName %>").getCount()).toEqual(0)
         }

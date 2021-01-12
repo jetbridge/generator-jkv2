@@ -9,3 +9,7 @@ export { gameFactory } from "./factory/game.factory"
 
 // Utilities
 export * from './util/pagination'
+
+
+// API schemas
+export { GameSchemaLite } from './apiSchema/game'

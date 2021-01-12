@@ -14,8 +14,8 @@ custom:
   COGNITO_APP_UNAUTH_ROLE: ${self:custom.stackName}-cognito-app-unauth-role
   BASE_URL: ${env:BASE_URL, 'work-in-progress'}
   CognitoAddCustomAttributes:
-    CognitoUserPoolIdOutputKey: <%= title %>UserPool
-    CognitoUserPoolClientIdOutputKey: <%= title %>UserPoolClient
+    CognitoUserPoolIdOutputKey: newstuffUserPool
+    CognitoUserPoolClientIdOutputKey: newstuffUserPoolClient
   
   db:
     dbname: "<%= title %>"
@@ -64,11 +64,11 @@ provider:
     cors: true
     payload: "2.0"
     authorizers:
-      <%= title %>Authorizer:
+      newstuffAuthorizer:
         identitySource: $request.header.Authorization
-        issuerUrl: "https://cognito-idp.#{AWS::Region}.amazonaws.com/#{<%= title %>UserPool}"
+        issuerUrl: "https://cognito-idp.#{AWS::Region}.amazonaws.com/#{newstuffUserPool}"
         audience:
-          - Ref: <%= title %>UserPoolClient
+          - Ref: newstuffUserPoolClient
   logs:
     httpApi: true
   tracing:

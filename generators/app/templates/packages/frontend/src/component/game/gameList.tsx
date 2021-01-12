@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useResources } from "../../hooks/userResources"
-import { listGames } from "../../api/game"
+import { createGame, listGames } from "../../api/game"
 import Home from "../Home"
 
 interface IUserEditProps { }
@@ -8,6 +8,10 @@ interface IUserEditProps { }
 const GameList: React.FC<IUserEditProps> = (props) => {
 
   const games = useResources(listGames)
+
+  React.useEffect(() => {
+    createGame({name: "Kekw"})
+  }, [])
 
   if (!games) return <>
     <Home />

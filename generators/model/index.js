@@ -38,11 +38,18 @@ module.exports = class extends Generator {
         const pathToExportsFromCore = `${this.destinationPath()}/packages/core/src/index.ts`
         const pathToConnectionConfig = `${this.destinationPath()}/packages/backend/src/db/Connection.ts`
 
+        const modelApiSchemaName = `${capitalizedModelName}SchemaLite`
+        const modelFactoryName = `${this.answers.modelName}Factory`
+        const modelIdName = `${this.answers.modelName}Id`
+
         this.fs.copyTpl(
             this.templatePath("model.ts"),
             copyDestination,
             {
                 modelName: capitalizedModelName,
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
             }
         )
         this.fs.copyTpl(
@@ -51,7 +58,10 @@ module.exports = class extends Generator {
             {
                 capitalizedModelName: capitalizedModelName,
                 modelName: this.answers.modelName,
-                projectName: this.config.get('projectName')
+                projectName: this.config.get('projectName'),
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
             }
         )
 
@@ -76,33 +86,75 @@ module.exports = class extends Generator {
         arrayLiteralExpression.addElement(capitalizedModelName)
         sourceFile.saveSync()
 
-        if(!this.answers.generateCRUD) return
+        if (!this.answers.generateCRUD) return
 
         // If users wishes, generate CRUD endpoints for the model and tests for them
         const apiCopyDestination = `${this.destinationPath()}/packages/backend/src/api/${this.answers.modelName}/crud.ts`
         const testsCopyDestination = `${this.destinationPath()}/packages/backend/src/api/${this.answers.modelName}/crud.test.ts`
         const serverlessCopyDestination = `${this.destinationPath()}/packages/backend/cloudformation/serverlessFunctions/app.yml`
+        const domainFuntionsCopyDestination = `${this.destinationPath()}/packages/backend/src/domain/${this.answers.modelName}.ts`
+        const apiSchemaCopyDestination = `${this.destinationPath()}/packages/core/src/apiSchema/${this.answers.modelName}.ts`
 
+
+
+        // Generate domain functions
+        this.fs.copyTpl(
+            this.templatePath("domain.ts"),
+            domainFuntionsCopyDestination,
+            {
+                capitalizedModelName: capitalizedModelName,
+                modelName: this.answers.modelName,
+                projectName: this.config.get('projectName'),
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
+            }
+        )
+
+        // Generate validation schema
+        this.fs.copyTpl(
+            this.templatePath("apiSchema.ts"),
+            apiSchemaCopyDestination,
+            {
+                capitalizedModelName: capitalizedModelName,
+                modelName: this.answers.modelName,
+                projectName: this.config.get('projectName'),
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
+            }
+        )
+        this.fs.append(pathToExportsFromCore, `\nexport { ${modelApiSchemaName} } from "./apiSchema/${this.answers.modelName}"\n`)
+
+        // Generate CRUD views
         this.fs.copyTpl(
             this.templatePath("crud.ts"),
             apiCopyDestination,
             {
                 capitalizedModelName: capitalizedModelName,
                 modelName: this.answers.modelName,
-                projectName: this.config.get('projectName')
+                projectName: this.config.get('projectName'),
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
             }
         )
 
+        // Generate Jest tests
         this.fs.copyTpl(
             this.templatePath("crud.test.ts"),
             testsCopyDestination,
             {
                 capitalizedModelName: capitalizedModelName,
                 modelName: this.answers.modelName,
-                projectName: this.config.get('projectName')
+                projectName: this.config.get('projectName'),
+                modelFactoryName: modelFactoryName,
+                modelSchemaName: modelApiSchemaName,
+                modelIdName: modelIdName
             }
         )
 
+        // CFN templates for lambdas in .yml
         let serverlessFunctions = fs.readFileSync(this.templatePath("app.yml"), 'utf8').toString('utf8')
         serverlessFunctions = serverlessFunctions.replace(new RegExp('<%= modelName %>', 'gi'), this.answers.modelName)
         serverlessFunctions = serverlessFunctions.replace(new RegExp('<%= capitalizedModelName %>', 'gi'), capitalizedModelName)
@@ -113,6 +165,4 @@ module.exports = class extends Generator {
     async end() {
         this.spawnCommandSync("npm", ["run", "build:all"], { cwd: 'packages/backend' })
     }
-
-
 }

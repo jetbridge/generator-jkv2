@@ -11,7 +11,7 @@
     "db:init:local": "npm run db:dropcreatedb && npm run db:migrate && npm run seed:run",
     "db:init:remote:dev": "npm run db:migrate && npm run seed:run",
     "db:dropcreatedb": "dropdb <%= title %> --if-exists && createdb <%= title %>",
-    "db:dropcreatedb:test": "dropdb <%= title %>_test --if-exists && createdb <%= title %>_test",
+    "db:dropcreatedb:test": "dropdb newstuff_test --if-exists && createdb newstuff_test",
     "db:migrate:generate": "ts-node ./node_modules/typeorm/cli.js migration:generate -n $name",
     "db:migrate": "ts-node ./node_modules/typeorm/cli.js migration:run",
     "seed:config": "ts-node ./node_modules/typeorm-seeding/dist/cli.js config",
