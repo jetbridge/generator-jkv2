@@ -1,14 +1,45 @@
-import { <%= modelSchemaName %>, <%= capitalizedModelName %> } from "<%= projectName %>-core"
-import { applyErrorHandlingAndValidation } from "../../util/serialization";
-import { getById, create, updateById, deleteById, list } from "../../domain/<%= modelName %>";
+import { <%= capitalizedModelName %>, <%= modelSchemaName %> } from "<%= projectName %>-core"
+import { getPageParams } from "../../util/pagination"
+import createHttpError from "http-errors"
+import { ResultPromise, PaginatedResultPromise } from "../../util/types"
+import { applyErrorHandlingAndValidation } from "../../util/serialization"
+import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
+import { list<%= capitalizedModelName %>s, create<%= capitalizedModelName %>, get<%= capitalizedModelName %>ById, update<%= capitalizedModelName %>ById, delete<%= capitalizedModelName %>ById } from "../../domain/<%= modelName %>"
 
 
-export const createHandler = applyErrorHandlingAndValidation <<%= capitalizedModelName %>> (<%= modelSchemaName %>, create)
+const create = async (event: { body: <%= modelSchemaName %> }): ResultPromise<<%= capitalizedModelName %>> =>
+    await create<%= capitalizedModelName %>(event.body)
 
-export const listHandler = applyErrorHandlingAndValidation <<%= capitalizedModelName %> [] > (<%= capitalizedModelName %>, list)
+const list = async (event: APIGatewayProxyEventV2): PaginatedResultPromise<<%= capitalizedModelName %>> => {
+    const pageParams = getPageParams(event.queryStringParameters)
+    return await list<%= capitalizedModelName %>s(pageParams)
+}
 
-export const getByIdHandler = applyErrorHandlingAndValidation <<%= capitalizedModelName %>> (<%= capitalizedModelName %>, getById)
+const getById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<<%= capitalizedModelName %>> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
 
-export const updateByIdHandler = updateById  // Apply validation to update once you have defined a request schema for it
+    return await get<%= capitalizedModelName %>ById(event.pathParameters["<%= modelIdName %>"])
+}
 
-export const deleteByIdHandler = applyErrorHandlingAndValidation <<%= capitalizedModelName %>> (<%= modelSchemaName %>, deleteById)
+const updateById = async (event: { body: <%= modelSchemaName %>, pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<<%= capitalizedModelName %>> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
+
+    const <%= modelIdName %> = event.pathParameters["<%= modelIdName %>"]
+    return await update<%= capitalizedModelName %>ById(<%= modelIdName %>, event.body)
+}
+
+const deleteById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<void> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
+
+    const <%= modelIdName %> = event.pathParameters["<%= modelIdName %>"]
+    await delete<%= capitalizedModelName %>ById(<%= modelIdName %>)
+}
+
+export const createHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= modelSchemaName %>, create)
+export const listHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>[]>(<%= capitalizedModelName %>, list)
+export const getByIdHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= capitalizedModelName %>, getById)
+export const updateByIdHandler = updateById  // Add validation once there's a clearly defined schema
+export const deleteByIdHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= capitalizedModelName %>, deleteById)

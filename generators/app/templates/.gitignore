@@ -1,5 +1,6 @@
 build
 .build
+.serverless
 node_modules
 .idea
 .DS_Store

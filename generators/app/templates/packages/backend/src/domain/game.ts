@@ -1,88 +1,54 @@
 import { GameSchemaLite, Game, PaginatedResponse } from "<%= title %>-core"
-import { APIGatewayProxyResultV2, APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
-import { db } from "../db"
-import { getPagesData, getPaginationData } from "../util/pagination"
-import createHttpError from "http-errors"
-import { findByIdOr404 } from "../util/query"
+import { getPaginationData, PagesData } from "../util/pagination"
+import { findByIdOr404, getRepo, getQueryBuilder } from "../util/query"
 
 
-export const create = async (event: { body: GameSchemaLite }): Promise<APIGatewayProxyResultV2<Game>> => {
 
-    const name = event.body.name
+export const createGame = async (game: GameSchemaLite): Promise<Game> => {
+    const repo = await getRepo(Game)
 
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = repo.create({
-        name: name,
+    const entity = repo.create({
+        ...game
     })
 
     await repo.save(game)
 
-
-    return game
+    return entity
 }
 
-export const list = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<PaginatedResponse<Game>>> => {
-    /**
-     * Get a paginated list
-     */
-    const pagesData = getPagesData(event.queryStringParameters)
-    const conn = await db.getConnection()
-    const games = await conn.getRepository(Game).createQueryBuilder("game").getMany()
+export const listGames = async (pageParams: PagesData): Promise<PaginatedResponse<Game>> => {
+    const queryBuilder = await getQueryBuilder(Game)
 
-    const totalCount = await conn.getRepository(Game).createQueryBuilder("game").getCount()
+    const games = await queryBuilder.getMany()
+    const totalCount = await queryBuilder.getCount()
 
     return {
         items: games,
-        paginationData: getPaginationData(totalCount, pagesData),
+        paginationData: getPaginationData(totalCount, pageParams)
     }
 }
 
+export const getGameById = async (gameId: string): Promise<Game> => {
+    const repo = await getRepo(Game)
 
-export const getById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<Game>> => {
-    if (!event.pathParameters || !event.pathParameters["gameId"])
-        throw createHttpError(404, "No path parameters found or gameId not present in them")
+    const entity = await findByIdOr404(repo, gameId)
 
-    const gameId: string = event.pathParameters["gameId"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = await findByIdOr404(repo, gameId)
-
-    return game
+    return entity
 }
 
-export const updateById = async (event: { body: GameSchemaLite, pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<Game>> => {
-    if (!event.pathParameters || !event.pathParameters["gameId"])
-        throw createHttpError(404, "No path parameters found or gameId not present in them")
+export const updateGameById = async (gameId: string, game: GameSchemaLite): Promise<Game> => {
+    const repo = await getRepo(Game)
 
-    const gameId = event.pathParameters["gameId"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = await findByIdOr404(repo, gameId)
+    const entity = await findByIdOr404(repo, gameId)
 
     return await repo.save({
-        ...game,
-        ...event.body
+        ...entity,
+        ...game
     })
 }
 
-export const deleteById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<void>> => {
-    if (!event.pathParameters || !event.pathParameters["gameId"])
-        throw createHttpError(404, "No path parameters found or gameId not present in them")
-
-    const gameId = event.pathParameters["gameId"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
+export const deleteGameById = async (gameId: string): Promise<void> => {
+    const repo = await getRepo(Game)
 
     const game = await findByIdOr404(repo, gameId)
 

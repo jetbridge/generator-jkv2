@@ -20,7 +20,7 @@ interface PaginationData {
     nextPage?: number
 }
 
-function getPagesData(query_params?: Object): PagesData {
+function getPageParams(query_params?: Object): PagesData {
     let pageSize = 25
     let pageNumber = 1
     if (query_params) {
@@ -37,25 +37,25 @@ function getPagesData(query_params?: Object): PagesData {
     }
 }
 
-function getPaginationData(total_object_count: number, pagesData: PagesData): PaginationData {
-    let totalPagesCount = Math.ceil(total_object_count / pagesData.pageSize)
+function getPaginationData(total_object_count: number, pageParams: PagesData): PaginationData {
+    let totalPagesCount = Math.ceil(total_object_count / pageParams.pageSize)
 
     let paginationData: PaginationData = {
         "totalCount": total_object_count,
         "totalPages": totalPagesCount,
         "firstPage": 1,
         "lastPage": totalPagesCount,
-        "page": pagesData.pageNumber,
+        "page": pageParams.pageNumber,
     }
 
-    if (pagesData.pageNumber !== 1) {
-        paginationData.previousPage = pagesData.pageNumber - 1
+    if (pageParams.pageNumber !== 1) {
+        paginationData.previousPage = pageParams.pageNumber - 1
     }
-    if (pagesData.pageNumber !== totalPagesCount) {
-        paginationData.nextPage = pagesData.pageNumber + 1
+    if (pageParams.pageNumber !== totalPagesCount) {
+        paginationData.nextPage = pageParams.pageNumber + 1
     }
 
     return paginationData
 }
 
-export { getPagesData, getPaginationData, PagesData, PaginatedResponse, PaginationData }
+export { getPageParams, getPaginationData, PagesData, PaginatedResponse, PaginationData }

@@ -1,88 +1,56 @@
 import { <%= modelSchemaName %>, <%= capitalizedModelName %>, PaginatedResponse } from "<%= projectName %>-core"
-import { APIGatewayProxyResultV2, APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
-import { db } from "../db"
-import { getPagesData, getPaginationData } from "../util/pagination"
-import createHttpError from "http-errors"
-import { findByIdOr404 } from "../util/query"
+import { getPaginationData, PagesData } from "../util/pagination"
+import { findByIdOr404, getRepo, getQueryBuilder } from "../util/query"
 
 
-export const create = async (event: { body: <%= modelSchemaName %> }): Promise < APIGatewayProxyResultV2 <<%= capitalizedModelName %>>> => {
 
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
+export const create<%= capitalizedModelName %> = async (<%= modelName %>: <%= modelSchemaName %>): Promise<<%= capitalizedModelName %>> => {
+    const repo = await getRepo(<%= capitalizedModelName %>)
 
     const entity = repo.create({
-        ...event.body
+        ...<%= modelName %>
     })
 
-    await repo.save(entity)
-
+    await repo.save(<%= modelName %>)
 
     return entity
 }
 
-export const list = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<PaginatedResponse<<%= capitalizedModelName %>>>> => {
-    /**
-     * Get a paginated list
-     */
-    const pagesData = getPagesData(event.queryStringParameters)
-    const conn = await db.getConnection()
-    const entities: <%= capitalizedModelName %>[] = await conn.getRepository(<%= capitalizedModelName %>).createQueryBuilder("<%= modelName %>").getMany()
+export const list<%= capitalizedModelName %>s = async (pageParams: PagesData): Promise<PaginatedResponse<<%= capitalizedModelName %>>> => {
+    const queryBuilder = await getQueryBuilder(<%= capitalizedModelName %>)
 
-    const totalCount = await conn.getRepository(<%= capitalizedModelName %>).createQueryBuilder("<%= modelName %>").getCount()
+    const entities = await queryBuilder.getMany()
+    const totalCount = await queryBuilder.getCount()
 
     return {
         items: entities,
-        paginationData: getPaginationData(totalCount, pagesData),
+        paginationData: getPaginationData(totalCount, pageParams)
     }
 }
 
+export const get<%= capitalizedModelName %>ById = async (gameId: string): Promise<<%= capitalizedModelName %>> => {
+    const repo = await getRepo(<%= capitalizedModelName %>)
 
-export const getById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<<%= capitalizedModelName %>>> => {
-    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
-        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
-
-    const entityId: string = event.pathParameters["<%= modelIdName %>"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const entity = await findByIdOr404(repo, entityId)
+    const entity = await findByIdOr404(repo, gameId)
 
     return entity
 }
 
-export const updateById = async (event: { body: <%= capitalizedModelName %>, pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<<%= capitalizedModelName %>>> => {
-    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
-        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
+export const update<%= capitalizedModelName %>ById = async (gameId: string, <%= modelName %>: <%= modelSchemaName %>): Promise<<%= capitalizedModelName %>> => {
+    const repo = await getRepo(<%= capitalizedModelName %>)
 
-    const entityId = event.pathParameters["<%= modelIdName %>"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const entity = await findByIdOr404(repo, entityId)
+    const entity = await findByIdOr404(repo, gameId)
 
     return await repo.save({
         ...entity,
-        ...event.body
+        ...<%= modelName %>
     })
 }
 
-export const deleteById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): Promise<APIGatewayProxyResultV2<void>> => {
-    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
-        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
+export const delete<%= capitalizedModelName %>ById = async (gameId: string): Promise<void> => {
+    const repo = await getRepo(<%= capitalizedModelName %>)
 
-    const entityId = event.pathParameters["<%= modelIdName %>"]
+    const <%= modelName %> = await findByIdOr404(repo, gameId)
 
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const entity = await findByIdOr404(repo, entityId)
-
-    await repo.remove(entity)
+    await repo.remove(<%= modelName %>)
 }
