@@ -1,108 +1,44 @@
-import { <%= capitalizedModelName %>, PaginatedResponse } from "<%= projectName %>-core"
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda"
-import { db } from "../../db"
-import { getPagesData, getPaginationData } from "../../util/pagination"
+import { <%= capitalizedModelName %>, <%= modelSchemaName %> } from "<%= projectName %>-core"
+import { getPageParams } from "../../util/pagination"
+import createHttpError from "http-errors"
+import { applyErrorHandlingAndValidation } from "../../util/serialization"
+import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
+import { list<%= pluralizedModelName %>, create<%= capitalizedModelName %>, get<%= capitalizedModelName %>ById, update<%= capitalizedModelName %>ById, delete<%= capitalizedModelName %>ById } from "../../domain/<%= modelName %>"
 
 
-interface ICreate<%= capitalizedModelName %>Request { }
+const create = async (event: { body: <%= modelSchemaName %> }): ResultPromise<<%= capitalizedModelName %>> =>
+    await create<%= capitalizedModelName %>(event.body)
 
-interface IUpdate<%= capitalizedModelName %>Request { }
-
-
-export async function create(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<<%= capitalizedModelName %>>> {
-    if (!event.body) {
-        console.warn("No request body provided")
-        return {
-            statusCode: 400,
-        }
-    }
-    const body: ICreate<%= capitalizedModelName %>Request = JSON.parse(event.body)
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const <%= modelName %> = repo.create({
-        ...body
-    })
-
-    await repo.save(<%= modelName %>)
-
-
-    return <%= modelName %>
+const list = async (event: APIGatewayProxyEventV2): PaginatedResultPromise<<%= capitalizedModelName %>> => {
+    const pageParams = getPageParams(event.queryStringParameters)
+    return await list<%= capitalizedModelName %>s(pageParams)
 }
 
-export async function list(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<PaginatedResponse<<%= capitalizedModelName %>>>> {
-    /**
-     * Get a paginated list
-     */
-    const pagesData = getPagesData(event.queryStringParameters)
+const getById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<<%= capitalizedModelName %>> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
 
-    const conn = await db.getConnection()
-    const <%= modelName %>s = await conn.getRepository(<%= capitalizedModelName %>).createQueryBuilder("<%= modelName %>").getMany()
-
-    const totalCount = await conn.getRepository(<%= capitalizedModelName %>).createQueryBuilder("<%= modelName %>").getCount()
-
-    return {
-        items: <%= modelName %>s,
-        paginationData: getPaginationData(totalCount, pagesData),
-    }
+    return await get<%= capitalizedModelName %>ById(event.pathParameters["<%= modelIdName %>"])
 }
 
-export async function getById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<<%= capitalizedModelName %>>> {
-    if (!event.pathParameters || !event.pathParameters["<%= modelName %>Id"]) {
-        console.warn("No path parameters found or <%= modelName %>Id not present in them")
-        return { statusCode: 400 }
-    }
+const updateById = async (event: { body: <%= modelSchemaName %>, pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<<%= capitalizedModelName %>> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
 
-    const <%= modelName %>Id: string = event.pathParameters["<%= modelName %>Id"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const <%= modelName %> = await repo.findOneOrFail(<%= modelName %>Id)
-
-    return <%= modelName %>
+    const <%= modelIdName %> = event.pathParameters["<%= modelIdName %>"]
+    return await update<%= capitalizedModelName %>ById(<%= modelIdName %>, event.body)
 }
 
+const deleteById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<void> => {
+    if (!event.pathParameters || !event.pathParameters["<%= modelIdName %>"])
+        throw createHttpError(404, "No path parameters found or <%= modelIdName %> not present in them")
 
-export async function updateById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<<%= capitalizedModelName %>>> {
-    if (!event.pathParameters || !event.pathParameters["<%= modelName %>Id"] || !event.body) {
-        console.warn("No path parameters found or <%= modelName %>Id not present in them")
-        return { statusCode: 400 }
-    }
-
-    const <%= modelName %>Id: string = event.pathParameters["<%= modelName %>Id"]
-
-    const body: IUpdate<%= capitalizedModelName %>Request = JSON.parse(event.body)
-
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const <%= modelName %> = await repo.findOneOrFail(<%= modelName %>Id)
-
-    return await repo.save({
-        ...<%= modelName %>,
-        ...body
-    })
+    const <%= modelIdName %> = event.pathParameters["<%= modelIdName %>"]
+    await delete<%= capitalizedModelName %>ById(<%= modelIdName %>)
 }
 
-export async function deleteById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<void>> {
-    if (!event.pathParameters || !event.pathParameters["<%= modelName %>Id"]) {
-        console.warn("No path parameters found or <%= modelName %>Id not present in them")
-        return { statusCode: 400 }
-    }
-
-    const <%= modelName %>Id: string = event.pathParameters["<%= modelName %>Id"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(<%= capitalizedModelName %>)
-
-    const <%= modelName %> = await repo.findOneOrFail(<%= modelName %>Id)
-
-    await repo.remove(<%= modelName %>)
-}
+export const createHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= modelSchemaName %>, create)
+export const listHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>[]>(<%= capitalizedModelName %>, list)
+export const getByIdHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= capitalizedModelName %>, getById)
+export const updateByIdHandler = updateById  // Add validation once there's a clearly defined schema
+export const deleteByIdHandler = applyErrorHandlingAndValidation<<%= capitalizedModelName %>>(<%= capitalizedModelName %>, deleteById)

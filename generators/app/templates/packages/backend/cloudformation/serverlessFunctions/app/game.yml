@@ -1,44 +1,39 @@
 listGames:
-    handler: src/api/game/crud.list
+    handler: src/api/game/crud.listHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: GET
           path: /game
-          integration: lambda
 
 createGame:
-    handler: src/api/game/crud.create
+    handler: src/api/game/crud.createHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: POST
           path: /game
-          integration: lambda
 
 getGameById:
-    handler: src/api/game/crud.getById
+    handler: src/api/game/crud.getByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: GET
           path: /game/{gameId}
-          integration: lambda
 
 updateGameById:
-    handler: src/api/game/crud.updateById
+    handler: src/api/game/crud.updateByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: PATCH
           path: /game/{gameId}
-          integration: lambda
   
 deleteGameById:
-    handler: src/api/game/crud.delete
+    handler: src/api/game/crud.deleteByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: DELETE
           path: /game/{gameId}
-          integration: lambda

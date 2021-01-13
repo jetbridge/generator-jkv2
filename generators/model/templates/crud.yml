@@ -1,45 +1,40 @@
 
-list<%= capitalizedModelName %>s:
-    handler: src/api/<%= modelName %>/crud.list
+list<%= pluralizedModelName %>:
+    handler: src/api/<%= modelName %>/crud.listHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: GET
           path: /<%= modelName %>
-          integration: lambda
 
 create<%= capitalizedModelName %>:
-    handler: src/api/<%= modelName %>/crud.create
+    handler: src/api/<%= modelName %>/crud.createHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: POST
           path: /<%= modelName %>
-          integration: lambda
 
 get<%= capitalizedModelName %>ById:
-    handler: src/api/<%= modelName %>/crud.getById
+    handler: src/api/<%= modelName %>/crud.getByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: GET
           path: /<%= modelName %>/{<%= modelName %>Id}
-          integration: lambda
 
 update<%= capitalizedModelName %>ById:
-    handler: src/api/<%= modelName %>/crud.updateById
+    handler: src/api/<%= modelName %>/crud.updateByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: PATCH
           path: /<%= modelName %>/{<%= modelName %>Id}
-          integration: lambda
   
 delete<%= capitalizedModelName %>ById:
-    handler: src/api/<%= modelName %>/crud.delete
+    handler: src/api/<%= modelName %>/crud.deleteByIdHandler
     vpc: ${self:custom.vpc}
     events:
       - httpApi:
           method: DELETE
           path: /<%= modelName %>/{<%= modelName %>Id}
-          integration: lambda

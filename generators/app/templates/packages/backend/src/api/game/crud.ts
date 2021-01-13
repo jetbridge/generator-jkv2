@@ -1,114 +1,45 @@
-import { Game, PaginatedResponse } from "<%= title %>-core"
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda"
-import { db } from "../../db"
-import { getPagesData, getPaginationData } from "../../util/pagination"
+import { Game } from "<%= title %>-core"
+import { GameSchemaLite } from "<%= title %>-core"
+import { getPageParams } from "../../util/pagination"
+import createHttpError from "http-errors"
+import { applyErrorHandlingAndValidation } from "../../util/serialization"
+import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
+import { listGames, createGame, getGameById, updateGameById, deleteGameById } from "../../domain/game"
 
 
-interface ICreateGameRequest {
-    name: string
+const create = async (event: { body: GameSchemaLite }): ResultPromise<Game> =>
+    await createGame(event.body)
+
+const list = async (event: APIGatewayProxyEventV2): PaginatedResultPromise<Game> => {
+    const pageParams = getPageParams(event.queryStringParameters)
+    return await listGames(pageParams)
 }
 
-interface IUpdateGameRequest {
-    name: string
+const getById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<Game> => {
+    if (!event.pathParameters || !event.pathParameters["gameId"])
+        throw createHttpError(404, "No path parameters found or gameId not present in them")
+
+    return await getGameById(event.pathParameters["gameId"])
 }
 
+const updateById = async (event: { body: GameSchemaLite, pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<Game> => {
+    if (!event.pathParameters || !event.pathParameters["gameId"])
+        throw createHttpError(404, "No path parameters found or gameId not present in them")
 
-export async function create(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<Game>> {
-    if (!event.body) {
-        console.warn("No request body provided")
-        return {
-            statusCode: 400,
-        }
-    }
-    const body: ICreateGameRequest = JSON.parse(event.body)
-
-    const name = body.name
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = repo.create({
-        name: name,
-    })
-
-    await repo.save(game)
-
-
-    return game
+    const gameId = event.pathParameters["gameId"]
+    return await updateGameById(gameId, event.body)
 }
 
-export async function list(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<PaginatedResponse<Game>>> {
-    /**
-     * Get a paginated list
-     */
-    const pagesData = getPagesData(event.queryStringParameters)
+const deleteById = async (event: { pathParameters: APIGatewayProxyEventPathParameters }): ResultPromise<void> => {
+    if (!event.pathParameters || !event.pathParameters["gameId"])
+        throw createHttpError(404, "No path parameters found or gameId not present in them")
 
-    const conn = await db.getConnection()
-    const games = await conn.getRepository(Game).createQueryBuilder("game").getMany()
-
-    const totalCount = await conn.getRepository(Game).createQueryBuilder("game").getCount()
-
-    return {
-        items: games,
-        paginationData: getPaginationData(totalCount, pagesData),
-    }
+    const gameId = event.pathParameters["gameId"]
+    await deleteGameById(gameId)
 }
 
-export async function getById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<Game>> {
-    if (!event.pathParameters || !event.pathParameters["gameId"]) {
-        console.warn("No path parameters found or gameId not present in them")
-        return { statusCode: 400 }
-    }
-
-    const gameId: string = event.pathParameters["gameId"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = await repo.findOneOrFail(gameId)
-
-    return game
-}
-
-
-export async function updateById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<Game>> {
-    if (!event.pathParameters || !event.pathParameters["gameId"] || !event.body) {
-        console.warn("No path parameters found or gameId not present in them")
-        return { statusCode: 400 }
-    }
-
-    const gameId: string = event.pathParameters["gameId"]
-
-    const body: IUpdateGameRequest = JSON.parse(event.body)
-
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = await repo.findOneOrFail(gameId)
-
-    return await repo.save({
-        ...game,
-        ...body
-    })
-}
-
-export async function deleteById(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2<void>> {
-    if (!event.pathParameters || !event.pathParameters["gameId"]) {
-        console.warn("No path parameters found or gameId not present in them")
-        return { statusCode: 400 }
-    }
-
-    const gameId: string = event.pathParameters["gameId"]
-
-    const conn = await db.getConnection()
-
-    const repo = conn.getRepository(Game)
-
-    const game = await repo.findOneOrFail(gameId)
-
-    await repo.remove(game)
-}
+export const createHandler = applyErrorHandlingAndValidation<Game>(GameSchemaLite, create)
+export const listHandler = applyErrorHandlingAndValidation<Game[]>(Game, list)
+export const getByIdHandler = applyErrorHandlingAndValidation<Game>(Game, getById)
+export const updateByIdHandler = applyErrorHandlingAndValidation<Game>(GameSchemaLite, updateById)
+export const deleteByIdHandler = applyErrorHandlingAndValidation<Game>(Game, deleteById)
