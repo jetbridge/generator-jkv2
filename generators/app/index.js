@@ -1,4 +1,5 @@
-const Generator = require('yeoman-generator');
+const Generator = require('yeoman-generator')
+const kebabCase = require('kebab-case')
 
 module.exports = class extends Generator {
     async prompting() {
@@ -21,6 +22,8 @@ module.exports = class extends Generator {
             default: 'VPC'
         }
         ])
+
+        this.answers.title = kebabCase(this.answers.title)
     }
 
     writing() {
@@ -52,6 +55,7 @@ module.exports = class extends Generator {
 
         // Save project title to reuse it in other generators
         this.config.set('projectName', this.answers.title)
+        this.config.set('models', ["Game"])
     }
 
 

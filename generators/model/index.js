@@ -2,7 +2,11 @@ const Generator = require('yeoman-generator')
 const ts = require('typescript')
 const fs = require("fs")
 const tsMorph = require('ts-morph')
-const prependFile = require('prepend-file');
+const prependFile = require('prepend-file')
+const camelCase = require('camelcase')
+const pluralize = require('pluralize')
+const YAML = require('yaml')
+
 
 module.exports = class extends Generator {
     /* 
@@ -23,6 +27,8 @@ module.exports = class extends Generator {
             default: true
         },
         ])
+
+        this.answers.modelName = camelCase(this.answers.modelName)
     }
 
     async writing() {
@@ -34,13 +40,14 @@ module.exports = class extends Generator {
         this.conflicter.force = true  // Don't prompt for user confirmation when editting to existing files
         const copyDestination = `${this.destinationPath()}/packages/core/src/model/${this.answers.modelName}.ts`
         const factoryCopyDestination = `${this.destinationPath()}/packages/core/src/factory/${this.answers.modelName}.factory.ts`
-        const capitalizedModelName = this.answers.modelName.charAt(0).toUpperCase() + this.answers.modelName.slice(1)
+        const capitalizedModelName = camelCase(this.answers.modelName, { pascalCase: true, preserveConsecutiveUppercase: true })
         const pathToExportsFromCore = `${this.destinationPath()}/packages/core/src/index.ts`
         const pathToConnectionConfig = `${this.destinationPath()}/packages/backend/src/db/Connection.ts`
 
-        const modelApiSchemaName = `${capitalizedModelName}SchemaLite`
-        const modelFactoryName = `${this.answers.modelName}Factory`
-        const modelIdName = `${this.answers.modelName}Id`
+        const modelApiSchemaName = camelCase(`${capitalizedModelName}SchemaLite`, { pascalCase: true })
+        const modelFactoryName = camelCase(`${this.answers.modelName}Factory`)
+        const modelIdName = camelCase(`${this.answers.modelName}Id`)
+        const pluralizedModelName = pluralize(capitalizedModelName)
 
         this.fs.copyTpl(
             this.templatePath("model.ts"),
@@ -91,11 +98,10 @@ module.exports = class extends Generator {
         // If users wishes, generate CRUD endpoints for the model and tests for them
         const apiCopyDestination = `${this.destinationPath()}/packages/backend/src/api/${this.answers.modelName}/crud.ts`
         const testsCopyDestination = `${this.destinationPath()}/packages/backend/src/api/${this.answers.modelName}/crud.test.ts`
-        const serverlessCopyDestination = `${this.destinationPath()}/packages/backend/cloudformation/serverlessFunctions/app.yml`
+        const serverlessCopyDestination = `${this.destinationPath()}/packages/backend/cloudformation/serverlessFunctions/api/${this.answers.modelName}.yml`
         const domainFuntionsCopyDestination = `${this.destinationPath()}/packages/backend/src/domain/${this.answers.modelName}.ts`
         const apiSchemaCopyDestination = `${this.destinationPath()}/packages/core/src/apiSchema/${this.answers.modelName}.ts`
-
-
+        const mainServerlessConfigDestination = `${this.destinationPath()}/packages/backend/serverless.yml`
 
         // Generate domain functions
         this.fs.copyTpl(
@@ -107,7 +113,8 @@ module.exports = class extends Generator {
                 projectName: this.config.get('projectName'),
                 modelFactoryName: modelFactoryName,
                 modelSchemaName: modelApiSchemaName,
-                modelIdName: modelIdName
+                modelIdName: modelIdName,
+                pluralizedModelName: pluralizedModelName
             }
         )
 
@@ -121,7 +128,8 @@ module.exports = class extends Generator {
                 projectName: this.config.get('projectName'),
                 modelFactoryName: modelFactoryName,
                 modelSchemaName: modelApiSchemaName,
-                modelIdName: modelIdName
+                modelIdName: modelIdName,
+                pluralizedModelName: pluralizedModelName
             }
         )
         this.fs.append(pathToExportsFromCore, `\nexport { ${modelApiSchemaName} } from "./apiSchema/${this.answers.modelName}"\n`)
@@ -136,7 +144,8 @@ module.exports = class extends Generator {
                 projectName: this.config.get('projectName'),
                 modelFactoryName: modelFactoryName,
                 modelSchemaName: modelApiSchemaName,
-                modelIdName: modelIdName
+                modelIdName: modelIdName,
+                pluralizedModelName: pluralizedModelName
             }
         )
 
@@ -150,19 +159,37 @@ module.exports = class extends Generator {
                 projectName: this.config.get('projectName'),
                 modelFactoryName: modelFactoryName,
                 modelSchemaName: modelApiSchemaName,
-                modelIdName: modelIdName
+                modelIdName: modelIdName,
+                pluralizedModelName: pluralizedModelName
             }
         )
 
         // CFN templates for lambdas in .yml
-        let serverlessFunctions = fs.readFileSync(this.templatePath("app.yml"), 'utf8').toString('utf8')
+
+        // Add reference to the .yml containing lambdas to the "functions" array in main serverless.yml
+        const mainServerlessConfig = fs.readFileSync(mainServerlessConfigDestination, 'utf-8').toString('utf-8')
+        const parsedYML = YAML.parse(mainServerlessConfig)
+        parsedYML.functions.push("${file(cloudformation/serverlessFunctions/api/<%= modelName %>.yml)}".replace("<%= modelName %>", this.answers.modelName))
+        const newMainServerlessConfig = YAML.stringify(parsedYML)
+        this.fs.write(mainServerlessConfigDestination, newMainServerlessConfig)
+
+        // Create the functions in cloudformation/slsFunctions/api/modelName.yml
+        let serverlessFunctions = fs.readFileSync(this.templatePath("crud.yml"), 'utf8').toString('utf8')
         serverlessFunctions = serverlessFunctions.replace(new RegExp('<%= modelName %>', 'gi'), this.answers.modelName)
         serverlessFunctions = serverlessFunctions.replace(new RegExp('<%= capitalizedModelName %>', 'gi'), capitalizedModelName)
+        serverlessFunctions = serverlessFunctions.replace(new RegExp('<%= pluralizedModelName %>', 'gi'), pluralizedModelName)
 
-        this.fs.append(serverlessCopyDestination, serverlessFunctions)
+        this.fs.write(serverlessCopyDestination, serverlessFunctions)
     }
 
     async end() {
         this.spawnCommandSync("npm", ["run", "build:all"], { cwd: 'packages/backend' })
+
+        const models = this.config.get("models")
+        const newModelName = camelCase(this.answers.modelName, { pascalCase: true, preserveConsecutiveUppercase: true })
+        if (!models.includes(newModelName))
+            models.push(newModelName)
+
+        this.config.set("models", models)
     }
 }

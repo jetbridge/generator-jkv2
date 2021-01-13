@@ -16,7 +16,7 @@ export const create<%= capitalizedModelName %> = async (<%= modelName %>: <%= mo
     return entity
 }
 
-export const list<%= capitalizedModelName %>s = async (pageParams: PagesData): Promise<PaginatedResponse<<%= capitalizedModelName %>>> => {
+export const list<%= pluralizedModelName %> = async (pageParams: PagesData): Promise<PaginatedResponse<<%= capitalizedModelName %>>> => {
     const queryBuilder = await getQueryBuilder(<%= capitalizedModelName %>)
 
     const entities = await queryBuilder.getMany()

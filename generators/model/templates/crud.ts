@@ -1,10 +1,9 @@
 import { <%= capitalizedModelName %>, <%= modelSchemaName %> } from "<%= projectName %>-core"
 import { getPageParams } from "../../util/pagination"
 import createHttpError from "http-errors"
-import { ResultPromise, PaginatedResultPromise } from "../../util/types"
 import { applyErrorHandlingAndValidation } from "../../util/serialization"
 import { APIGatewayProxyEventV2, APIGatewayProxyEventPathParameters } from "aws-lambda"
-import { list<%= capitalizedModelName %>s, create<%= capitalizedModelName %>, get<%= capitalizedModelName %>ById, update<%= capitalizedModelName %>ById, delete<%= capitalizedModelName %>ById } from "../../domain/<%= modelName %>"
+import { list<%= pluralizedModelName %>, create<%= capitalizedModelName %>, get<%= capitalizedModelName %>ById, update<%= capitalizedModelName %>ById, delete<%= capitalizedModelName %>ById } from "../../domain/<%= modelName %>"
 
 
 const create = async (event: { body: <%= modelSchemaName %> }): ResultPromise<<%= capitalizedModelName %>> =>

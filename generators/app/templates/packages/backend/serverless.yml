@@ -99,8 +99,8 @@ plugins:
   - serverless-plugin-optimize
 
 functions:
-  - ${file(cloudformation/serverlessFunctions/app.yml)}  # API Gateway Lambdas
-  - ${file(cloudformation/serverlessFunctions/db.yml)}  # DB Lambdas (migrations, seeding, etc.)
+  - ${file(cloudformation/serverlessFunctions/app/game.yml)}
+  - ${file(cloudformation/serverlessFunctions/db.yml)}
 
 resources:
   - ${file(cloudformation/vpc.yml)}

@@ -1,5 +1,5 @@
 
-list<%= capitalizedModelName %>s:
+list<%= pluralizedModelName %>:
     handler: src/api/<%= modelName %>/crud.listHandler
     vpc: ${self:custom.vpc}
     events:
