@@ -4,8 +4,7 @@ import { db } from "../db"
 
 export const findByIdOr404 = async<T>(repo: Repository<T>, id: string) => {
     try {
-        const entity = await repo.findOneOrFail(id)
-        return entity
+        return await repo.findOneOrFail(id)
     }
     catch (EntityNotFoundError) {
         throw createHttpError(404, `Couldn't find entity with id: ${id}`)
