@@ -1,0 +1,8 @@
+
+<%= endpointName %>Handler:
+    handler: src/api/<%= capitalizedModelName %>/view.<%= endpointName %>Handler
+    vpc: ${self:custom.vpc}
+    events:
+      - httpApi:
+          method: <%= httpMethod %>
+          path: <%= endpointPath %>

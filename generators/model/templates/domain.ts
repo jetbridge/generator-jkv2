@@ -11,7 +11,7 @@ export const create<%= capitalizedModelName %> = async (<%= modelName %>: <%= mo
         ...<%= modelName %>
     })
 
-    await repo.save(<%= modelName %>)
+    await repo.save(entity)
 
     return entity
 }

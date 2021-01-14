@@ -45,8 +45,8 @@ module.exports = class extends Generator {
 
         // Create a git repo
         this.spawnCommandSync('git', ['init'])
-        this.spawnCommandSync('git', ['add', '--all'], { cwd: this.answers.title })
-        this.spawnCommandSync('git', ['commit', '-m', '"initial commit from generator"'], { cwd: this.answers.title })
+        this.spawnCommandSync('git', ['add', '--all'])
+        this.spawnCommandSync('git', ['commit', '-m', '"initial commit from generator"'])
     }
 
     end() {
