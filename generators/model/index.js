@@ -29,6 +29,9 @@ module.exports = class extends Generator {
         ])
 
         this.answers.modelName = camelCase(this.answers.modelName)
+
+        this.spawnCommandSync('git', ['add', '--all'])
+        this.spawnCommandSync('git', ['commit', '-m', `"Before creating ${this.anwsers.modelName}"`])
     }
 
     async writing() {
@@ -140,9 +143,13 @@ module.exports = class extends Generator {
         // Add reference to the .yml containing lambdas to the "functions" array in main serverless.yml
         const mainServerlessConfig = fs.readFileSync(mainServerlessConfigDestination, 'utf-8').toString('utf-8')
         const parsedYML = YAML.parse(mainServerlessConfig)
-        parsedYML.functions.push("${file(cloudformation/serverlessFunctions/api/<%= modelName %>.yml)}".replace("<%= modelName %>", this.answers.modelName))
-        const newMainServerlessConfig = YAML.stringify(parsedYML)
-        this.fs.write(mainServerlessConfigDestination, newMainServerlessConfig)
+        const newPathToFunctions = "${file(cloudformation/serverlessFunctions/api/<%= modelName %>.yml)}".replace("<%= modelName %>", this.answers.modelName)
+
+        if (!parsedYML.functions.includes(newPathToFunctions)) {
+            parsedYML.functions.push(newPathToFunctions)
+            const newMainServerlessConfig = YAML.stringify(parsedYML)
+            this.fs.write(mainServerlessConfigDestination, newMainServerlessConfig)
+        }
 
         // Create the functions in cloudformation/slsFunctions/api/modelName.yml
         let serverlessFunctions = fs.readFileSync(this.templatePath("crud.yml"), 'utf8').toString('utf8')
