@@ -56,6 +56,10 @@ module.exports = class extends Generator {
         // Save project title to reuse it in other generators
         this.config.set('projectName', this.answers.title)
         this.config.set('models', ["Game"])
+
+        // Commit again after the installation is finished
+        this.spawnCommandSync('git', ['add', '--all'])
+        this.spawnCommandSync('git', ['commit', '-m', '"initial commit from generator"'])
     }
 
 

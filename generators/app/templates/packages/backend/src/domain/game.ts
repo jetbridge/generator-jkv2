@@ -19,7 +19,10 @@ export const createGame = async (game: GameSchemaLite): Promise<Game> => {
 export const listGames = async (pageParams: PagesData): Promise<PaginatedResponse<Game>> => {
     const queryBuilder = await getQueryBuilder(Game)
 
-    const games = await queryBuilder.getMany()
+    const games = await queryBuilder.skip((pageParams.pageNumber - 1) * pageParams.pageSize)
+        .take(pageParams.pageSize)
+        .getMany()
+
     const totalCount = await queryBuilder.getCount()
 
     return {

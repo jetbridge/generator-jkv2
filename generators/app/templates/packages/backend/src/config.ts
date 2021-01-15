@@ -64,6 +64,14 @@ export const config = convict({
         format: ['dev', 'prod', 'dev3'],
         default: "dev",
         env: "STAGE"
+    },
+    lambda: {
+        functionPrefix: {
+            doc: "Prefix of Lambda functions. Used when invoking a Lambda from another Lambda.",
+            format: String,
+            default: "",
+            env: "FUNCTION_PREFIX"
+        }
     }
 })
 
