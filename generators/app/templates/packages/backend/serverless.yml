@@ -50,7 +50,7 @@ provider:
   runtime: nodejs12.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'eu-west-1'}
-  profile: ${env:AWS_PROFILE, '<%= tite %>'}
+  profile: ${env:AWS_PROFILE, '<%= title %>'}
 
   environment:
     FUNCTION_PREFIX: "${self:custom.stackName}-"
