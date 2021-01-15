@@ -57,10 +57,10 @@ REACT_APP_API_REGION
 To find some of the values you should login to your aws account
 
 `REACT_APP_COGNITO_USER_POOL_ID`
-![](public/how_to_get_cognito_pool_id.png)
+![](public/settingUpCognito/how_to_get_cognito_pool_id.png)
 
 `REACT_APP_COGNITO_USER_POOL_APP_CLIENT_ID`
-![](public/how_to_get_cognito_app_client_id.png)
+![](public/settingUpCognito/how_to_get_cognito_app_client_id.png)
 
 `REACT_APP_IDENTITY_POOL_ID`
-![](public/how_to_get_cognito_identity_pool_id.png)
+![](public/settingUpCognito/how_to_get_cognito_identity_pool_id.png)
