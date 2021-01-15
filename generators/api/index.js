@@ -46,7 +46,7 @@ module.exports = class extends Generator {
         this.answers.endpointPath = kebabCase(answersExtension.endpointPath)
 
         this.spawnCommandSync('git', ['add', '--all'])
-        this.spawnCommandSync('git', ['commit', '-m', `"Before creating ${this.answers.endpointName} endpoint"`])
+        this.spawnCommandSync('git', ['commit', '-m', `"Before creating new endpoint"`])
     }
 
     writing() {

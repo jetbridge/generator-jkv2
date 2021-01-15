@@ -31,7 +31,7 @@ module.exports = class extends Generator {
         this.answers.modelName = camelCase(this.answers.modelName)
 
         this.spawnCommandSync('git', ['add', '--all'])
-        this.spawnCommandSync('git', ['commit', '-m', `"Before creating ${this.anwsers.modelName}"`])
+        this.spawnCommandSync('git', ['commit', '-m', `"Before creating new model"`])
     }
 
     async writing() {
