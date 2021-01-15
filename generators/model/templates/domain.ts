@@ -19,7 +19,9 @@ export const create<%= capitalizedModelName %> = async (<%= modelName %>: <%= mo
 export const list<%= pluralizedModelName %> = async (pageParams: PagesData): Promise<PaginatedResponse<<%= capitalizedModelName %>>> => {
     const queryBuilder = await getQueryBuilder(<%= capitalizedModelName %>)
 
-    const entities = await queryBuilder.getMany()
+    const entities = await queryBuilder.skip((pageParams.pageNumber - 1) * pageParams.pageSize)
+    .take(pageParams.pageSize)
+    .getMany()
     const totalCount = await queryBuilder.getCount()
 
     return {

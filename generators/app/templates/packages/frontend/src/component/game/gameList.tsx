@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useResources } from "../../hooks/userResources"
-import { createGame, listGames } from "../../api/game"
+import { listGames } from "../../api/game"
 import Home from "../Home"
 
 interface IUserEditProps { }

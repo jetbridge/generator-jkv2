@@ -7,5 +7,10 @@ migrate:
 
 seed:
     handler: src/db/runSeed.runSeed
-    timeout: 30
+    timeout: 120
     vpc: ${self:custom.vpc}
+
+seedDispatcher:
+    handler: src/db/runSeed.dispatchMultipleSeeds
+    vpc: ${self:custom.vpc}
+    timeout: 120
