@@ -2,8 +2,9 @@
 Opinionated generator for mono-repo web apps.
 
 Features:
-- No framework. Just functions and API Gateway
-- Postgres & TypeORM
+- Monorepo with npm7 workspaces (backend, core, frontend)
+- No framework. Plain Typescript functions and API Gateway routing to Lambdas running in VPC
+- TypeORM & Postgres
 - Cognito
 
 ## Quickstart
